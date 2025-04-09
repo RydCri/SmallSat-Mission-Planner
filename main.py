@@ -6,6 +6,7 @@ from poliastro.twobody import Orbit
 from astropy import units as u
 from poliastro.plotting.static import StaticOrbitPlotter
 from datetime import datetime
+import numpy as np
 
 app = dash.Dash(__name__)
 app.title = "SmallSat Mission Planner"
@@ -33,6 +34,35 @@ app.layout = html.Div([
         html.Label("Inclination (deg)"),
         dcc.Input(id='inclination', type='number', value=97.5),
 
+        html.Hr(),
+
+        html.H4("Sensor & Payload"),
+        html.Label("Sensor Type"),
+        dcc.Dropdown(
+            id='sensor-type',
+            options=[
+                {'label': 'Multispectral Imager', 'value': 'MSI'},
+                {'label': 'Hyperspectral Imager', 'value': 'HSI'},
+                {'label': 'Synthetic Aperture Radar (SAR)', 'value': 'SAR'}
+            ],
+            value='MSI'
+        ),
+
+        html.Label("Swath Width (km)"),
+        dcc.Input(id='swath-width', type='number', value=100),
+
+        html.Hr(),
+
+        html.H4("Power Budget"),
+        html.Label("Solar Panel Area (m²)"),
+        dcc.Input(id='solar-area', type='number', value=1.5),
+
+        html.Label("Solar Cell Efficiency (%)"),
+        dcc.Input(id='solar-eff', type='number', value=28),
+
+        html.Label("Average Power Consumption (W)"),
+        dcc.Input(id='power-consumption', type='number', value=50),
+
         html.Button("Update Orbit", id='update-btn')
     ], style={'width': '25%', 'float': 'left', 'padding': '20px'}),
 
@@ -42,20 +72,31 @@ app.layout = html.Div([
             id="loading-plot",
             children=dcc.Graph(id='orbit-plot'),
             type="default"
-        )
+        ),
+
+        html.H2("Revisit Time Estimate"),
+        html.Div(id='revisit-time-output', style={'fontSize': '18px'}),
+
+        html.H2("Power Budget Analysis"),
+        html.Div(id='power-budget-output', style={'fontSize': '18px'})
     ], style={'width': '70%', 'float': 'right', 'padding': '20px'})
 ])
 
 # Callbacks
 @app.callback(
-    Output('orbit-plot', 'figure'),
+    [Output('orbit-plot', 'figure'),
+     Output('revisit-time-output', 'children'),
+     Output('power-budget-output', 'children')],
     Input('update-btn', 'n_clicks'),
     State('orbit-type', 'value'),
     State('altitude', 'value'),
-    State('inclination', 'value')
+    State('inclination', 'value'),
+    State('swath-width', 'value'),
+    State('solar-area', 'value'),
+    State('solar-eff', 'value'),
+    State('power-consumption', 'value')
 )
-def update_orbit(n_clicks, orbit_type, altitude, inclination):
-    # Defaults
+def update_orbit(n_clicks, orbit_type, altitude, inclination, swath_width, solar_area, solar_eff, power_consumption):
     if orbit_type == 'LEO':
         alt = 500 * u.km
         inc = 51.6 * u.deg
@@ -69,7 +110,7 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination):
         alt = (altitude or 500) * u.km
         inc = (inclination or 90) * u.deg
 
-    # Create orbit from altitude and inclination (circular orbit)
+    # Orbit calculation
     a = Earth.R + alt
     ecc = 0 * u.one
     raan = 0 * u.deg
@@ -78,17 +119,37 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination):
 
     orbit = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, epoch=datetime.utcnow())
 
+    # Plot orbit
     fig = go.Figure()
     plotter = StaticOrbitPlotter(fig)
     plotter.plot(orbit, label="Selected Orbit")
-
     fig.update_layout(
         margin={"l": 0, "r": 0, "t": 0, "b": 0},
         showlegend=True,
         height=600
     )
-    return fig
 
+    # Revisit Time Estimate
+    earth_circumference_km = 40075
+    swath = swath_width or 100
+    revisit_estimate_days = round(earth_circumference_km / (swath * 14), 1)
+    revisit_output = f"Estimated Global Revisit Time: {revisit_estimate_days} days"
+
+    # Power Budget Analysis
+    solar_constant = 1361  # W/m²
+    eclipse_fraction = 0.35  # rough average
+    solar_efficiency = (solar_eff or 28) / 100
+    area = solar_area or 1.5
+    generated_power = solar_constant * area * solar_efficiency * (1 - eclipse_fraction)
+    power_used = power_consumption or 50
+    power_output = f"Average Power Generated: {generated_power:.1f} W — Consumption: {power_used} W"
+
+    if generated_power >= power_used:
+        power_output += " ✅ Power budget is sufficient."
+    else:
+        power_output += " ⚠️ Power budget is insufficient!"
+
+    return fig, revisit_output, power_output
 
 if __name__ == '__main__':
     app.run(debug=True)
