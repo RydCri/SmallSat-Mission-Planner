@@ -97,6 +97,25 @@ app.layout = html.Div([
     State('solar-eff', 'value'),
     State('power-consumption', 'value')
 )
+
+def estimate_data_rate(sensor_type, resolution, sensor_specs):
+    if sensor_type == "MSI":
+        # Data rate formula (example)
+        return resolution * sensor_specs["number_of_bands"] * 10  # in MB per orbit
+    elif sensor_type == "HSI":
+        # Hyperspectral data is higher
+        return resolution * sensor_specs["number_of_bands"] * 50  # in MB per orbit
+    elif sensor_type == "SAR":
+        # SAR data rate depends on the imaging mode
+        return resolution * sensor_specs["imaging_mode_factor"] * 100  # in MB per orbit
+    else:
+        return 0
+
+def downlink_opportunities(orbit, ground_station):
+    # This function can compute ground station visibility during the orbit
+    # Simplified model: Assuming a fixed downlink window for each pass
+    pass
+
 def update_orbit(n_clicks, orbit_type, altitude, inclination, swath_width, solar_area, solar_eff, power_consumption):
     if orbit_type == 'LEO':
         alt = 500 * u.km
