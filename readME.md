@@ -1,5 +1,5 @@
 ### SmallSat Mission Planner
-
+<i>WIP</i><br>
 This project uses dash, poliastro and plotly to calculate, model and graph user inputted parameters for planning a satellite launch.<br>
 <ul>
 <h4>Features:</h4>
