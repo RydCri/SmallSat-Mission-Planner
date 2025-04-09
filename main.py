@@ -8,6 +8,7 @@ from astropy.time import Time
 from poliastro.plotting.static import StaticOrbitPlotter
 import numpy as np
 
+# Dash app configuration
 app = dash.Dash(__name__)
 app.title = "SmallSat Mission Planner"
 
@@ -189,5 +190,6 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination, swath_width, solar
 
     return fig, revisit_output, power_output
 
+#TODO: Disable debug mode and set host and port for production
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=80)
