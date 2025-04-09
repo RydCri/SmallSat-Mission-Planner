@@ -116,6 +116,12 @@ def downlink_opportunities(orbit, ground_station):
     # Simplified model: Assuming a fixed downlink window for each pass
     pass
 
+def calculate_onboard_storage(data_rate, downlink_windows, mission_duration):
+    data_per_day = data_rate * downlink_windows  # data generated per day (in MB)
+    storage_needed = data_per_day * mission_duration  # in MB
+    return storage_needed
+
+
 def update_orbit(n_clicks, orbit_type, altitude, inclination, swath_width, solar_area, solar_eff, power_consumption):
     if orbit_type == 'LEO':
         alt = 500 * u.km
