@@ -5,7 +5,7 @@ from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
 from astropy import units as u
 from poliastro.plotting.static import StaticOrbitPlotter
-from datetime import datetime
+from astropy.time import Time
 import numpy as np
 
 app = dash.Dash(__name__)
@@ -117,17 +117,17 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination, swath_width, solar
     argp = 0 * u.deg
     nu = 0 * u.deg
 
-    orbit = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, epoch=datetime.utcnow())
+    epoch = Time.now()
+    orbit = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, epoch=epoch)
+
 
     # Plot orbit
+
+
     fig = go.Figure()
-    plotter = StaticOrbitPlotter(fig)
+    plotter = StaticOrbitPlotter()
     plotter.plot(orbit, label="Selected Orbit")
-    fig.update_layout(
-        margin={"l": 0, "r": 0, "t": 0, "b": 0},
-        showlegend=True,
-        height=600
-    )
+    fig = plotter._figure
 
     # Revisit Time Estimate
     earth_circumference_km = 40075
