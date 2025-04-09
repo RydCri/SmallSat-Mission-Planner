@@ -4,8 +4,8 @@ import plotly.graph_objs as go
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
 from astropy import units as u
-from poliastro.plotting.static import StaticOrbitPlotter
 from astropy.time import Time
+from poliastro.plotting.static import StaticOrbitPlotter
 import numpy as np
 
 app = dash.Dash(__name__)
@@ -117,17 +117,55 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination, swath_width, solar
     argp = 0 * u.deg
     nu = 0 * u.deg
 
-    epoch = Time.now()
-    orbit = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, epoch=epoch)
+    orbit = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, epoch=Time.now())
 
-
-    # Plot orbit
-
-
+    # Plot the orbit using Plotly
     fig = go.Figure()
-    plotter = StaticOrbitPlotter()
-    plotter.plot(orbit, label="Selected Orbit")
-    fig = plotter._figure
+
+    # Generate points for the orbit path (in 3D)
+    num_points = 500
+    times = np.linspace(0, 2 * np.pi, num_points)
+    x_vals, y_vals, z_vals = [], [], []
+
+    for t in times:
+        pos = orbit.propagate(t)  # Propagate the orbit
+        x_vals.append(pos.r[0].value)
+        y_vals.append(pos.r[1].value)
+        z_vals.append(pos.r[2].value)
+
+    # Add orbit path to the plot
+    fig.add_trace(go.Scatter3d(
+        x=x_vals,
+        y=y_vals,
+        z=z_vals,
+        mode='lines',
+        line=dict(color='blue', width=4),
+        name="Orbit Path"
+    ))
+
+    # Add Earth at the origin
+    fig.add_trace(go.Scatter3d(
+        x=[0],
+        y=[0],
+        z=[0],
+        mode='markers',
+        marker=dict(size=5, color='green'),
+        name="Earth"
+    ))
+
+    # Update layout
+    fig.update_layout(
+        scene=dict(
+            xaxis_title='X (km)',
+            yaxis_title='Y (km)',
+            zaxis_title='Z (km)',
+            aspectmode="cube"
+        ),
+        margin=dict(l=0, r=0, b=0, t=0),
+        showlegend=True,
+        height=600,
+        title="Orbit Visualization"
+    )
 
     # Revisit Time Estimate
     earth_circumference_km = 40075
