@@ -1,3 +1,4 @@
+import numpy as np
 import dash
 from dash import dcc, html, Input, Output, State
 from poliastro.bodies import Earth
@@ -5,7 +6,10 @@ from poliastro.twobody import Orbit
 from astropy import units as u
 from poliastro.plotting.static import StaticOrbitPlotter
 from astropy.time import Time
+import plotly.graph_objs as go
 
+
+#TODO: TimeDelta passes need units
 
 app = dash.Dash(__name__)
 app.title = "SmallSat Mission Planner"
@@ -84,21 +88,22 @@ app.layout = html.Div([
     ], style={'width': '70%', 'float': 'right', 'padding': '20px'})
 ])
 
-# Helper Functions for Data Budget
+# Data Budget
 def estimate_data_rate(sensor_type, resolution):
     # Sample data generation rates for different sensors
     if sensor_type == "MSI":
-        return resolution * 0.1  # MB per orbit (simplified example)
+        return resolution * 0.1  # MB per orbit ( example )
     elif sensor_type == "HSI":
         return resolution * 0.5  # MB per orbit
     elif sensor_type == "SAR":
         return resolution * 1.0  # MB per orbit
     return 0
 
+
 def calculate_onboard_storage(data_rate, downlink_time, mission_duration):
-    # Simplified estimate of onboard storage
     data_per_day = data_rate * downlink_time
-    return data_per_day * mission_duration  # MB or GB
+    return data_per_day * mission_duration  # MB
+
 
 # Callbacks
 @app.callback(
@@ -116,6 +121,9 @@ def calculate_onboard_storage(data_rate, downlink_time, mission_duration):
     State('solar-eff', 'value'),
     State('power-consumption', 'value')
 )
+
+
+
 def update_orbit(n_clicks, orbit_type, altitude, inclination, sensor_type, sensor_resolution, solar_area, solar_eff, power_consumption):
     if orbit_type == 'LEO':
         alt = 500 * u.km
@@ -139,17 +147,56 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination, sensor_type, senso
 
     orbit = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, epoch=Time.now())
 
-    # Plot orbit using matplotlib and convert to image
-    fig, ax = plt.subplots(figsize=(6, 6))
-    plotter = StaticOrbitPlotter(ax)
-    plotter.set_attractor(Earth)
-    plotter.plot(orbit, label="Selected Orbit", color='blue')
-    ax.legend()
-    fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0}, showlegend=True, height=600)
+    # Plot the orbit using Plotly
+    fig = go.Figure()
 
+    # Generate points for the orbit path (in 3D)
+    num_points = 500
+    times = np.linspace(0, 2 * np.pi, num_points)
+    x_vals, y_vals, z_vals = [], [], []
+
+    for t in times:
+        pos = orbit.propagate(t)  # Propagate the orbit
+        x_vals.append(pos.r[0].value)
+        y_vals.append(pos.r[1].value)
+        z_vals.append(pos.r[2].value)
+
+    # Add orbit path to the plot
+    fig.add_trace(go.Scatter3d(
+        x=x_vals,
+        y=y_vals,
+        z=z_vals,
+        mode='lines',
+        line=dict(color='blue', width=4),
+        name="Orbit Path"
+    ))
+
+    # Add Earth at the origin
+    fig.add_trace(go.Scatter3d(
+        x=[0],
+        y=[0],
+        z=[0],
+        mode='markers',
+        marker=dict(size=5, color='green'),
+        name="Earth"
+    ))
+
+    # Update layout
+    fig.update_layout(
+        scene=dict(
+            xaxis_title='X (km)',
+            yaxis_title='Y (km)',
+            zaxis_title='Z (km)',
+            aspectmode="cube"
+        ),
+        margin=dict(l=0, r=0, b=0, t=0),
+        showlegend=True,
+        height=600,
+        title="Orbit Visualization"
+    )
     # Revisit Time Estimate
     earth_circumference_km = 40075
-    swath = 100  # example fixed swath
+    swath = 100  # init swath
     revisit_estimate_days = round(earth_circumference_km / (swath * 14), 1)
     revisit_output = f"Estimated Global Revisit Time: {revisit_estimate_days} days"
 
@@ -174,6 +221,7 @@ def update_orbit(n_clicks, orbit_type, altitude, inclination, sensor_type, senso
     data_output = f"Estimated Onboard Storage Required: {required_storage:.1f} MB"
 
     return fig, revisit_output, power_output, data_output
+
 
 if __name__ == '__main__':
     app.run(debug=True)
