@@ -67,7 +67,7 @@ app.layout = html.Div([
         dcc.Input(id='power-consumption', type='number', value=50),
 
         html.Button("Update Orbit", id='update-btn')
-    ], style={'width': '25%', 'float': 'left', 'padding': '20px'}),
+    ], style={'display': 'inline', 'width': '50%', 'float': 'left', 'padding': '20px'}),
 
     html.Div([
         html.H2("Orbit Visualization"),
@@ -85,7 +85,8 @@ app.layout = html.Div([
 
         html.H2("Data Budget Analysis"),
         html.Div(id='data-budget-output', style={'fontSize': '18px'})
-    ], style={'width': '70%', 'float': 'right', 'padding': '20px'})
+    ], style={'width': '70%', 'float': 'right', 'padding': '5px'})
+
 ])
 
 # Data Budget
