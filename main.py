@@ -10,6 +10,7 @@ import plotly.graph_objs as go
 
 
 #TODO: TimeDelta passes need units
+#TODO: Mission params. propulsion, IES maneuvers (m/s delta-v, FCM, deorbiting,
 
 app = dash.Dash(__name__)
 app.title = "SmallSat Mission Planner"
